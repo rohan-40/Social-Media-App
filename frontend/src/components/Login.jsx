@@ -3,6 +3,8 @@ import { Mail, Lock, Loader2 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import {toast} from "sonner"
+import { useDispatch } from "react-redux";
+import { setAuthUser } from "@/redux/authSlice";
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -11,6 +13,7 @@ export default function Login() {
   });
 
   const navigate = useNavigate();
+  const disPatch = useDispatch();
 
   const [loading,setLoading] = useState(false);
 
@@ -25,11 +28,9 @@ export default function Login() {
     e.preventDefault();
     try {
       setLoading(true)
-      const response = await axios.post(
-        "http://localhost:4000/user/login",
-        formData
-      );
+      const response = await axios.post("http://localhost:4000/user/login",formData, { withCredentials: true } );
       if (response.data.success) {
+        disPatch(setAuthUser(response.data.user)    )
         toast.success(response.data.message);
         navigate("/");
       }
@@ -37,6 +38,9 @@ export default function Login() {
     } catch (error) {
       console.error("Login failed:", error.response?.data || error.message);
       toast.error(error.response.data.message)
+    }
+    finally{
+      setLoading(false)
     }
   };
 

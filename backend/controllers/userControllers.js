@@ -1,4 +1,5 @@
 const User = require('../models/user')
+const Comment = require('../models/comment')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const getDataUri = require('../utils/datauri')
@@ -70,16 +71,8 @@ module.exports.login = async (req, res) => {
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
         
-        const populatedPosts  = await Promise.all(
-            user.posts.map(async (postId) =>{
-                const post = await Post.findById(postId)
 
-                if(post.author.equals(user._id)){
-                    return post;
-                }
-                return null;
-            })
-        )
+        const post = await Post.find({author:user._id})
 
         user = {
             _id : user._id,
@@ -89,7 +82,7 @@ module.exports.login = async (req, res) => {
             bio: user.bio,
             followers: user.followers,
             following: user.following,
-            posts: populatedPosts
+            post
         }
 
 
@@ -109,7 +102,7 @@ module.exports.login = async (req, res) => {
 
 module.exports.logout = async (_, res) => {
     try{
-        return res.clearCookie('token').status(200).json({
+        return res.clearCookie('token',{httpOnly:true, sameSite: 'strict'}).status(200).json({
             message: "Logged out successfully",
             success: true
         })

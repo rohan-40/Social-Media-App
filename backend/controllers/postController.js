@@ -2,50 +2,50 @@ const sharp = require('sharp');
 const cloudinary = require('cloudinary').v2;
 const Post = require('../models/post');
 const User = require('../models/user');
+const Comment = require('../models/comment');
 
 module.exports.addNewPost = async (req, res) => {
-    try{
-        const {caption} = req.body;
-        const image = req.file;
-        const authorId = req.id;
+  try {
+    const { caption } = req.body;
+    const image = req.file;
+    const authorId = req.id;
 
-        if(!image){
-            return res.status(400).json({message: "Please upload an image."});
-        }
-
-        const imageOpitmizerBuffer = await sharp(image.buffer)
-        .resize({width:800 , height: 800 , fit: 'inside'})
-        .toFormat('jpeg', {quality : 80})
-        .toBuffer()
-
-        // buffer to DataUri
-        const fileUri = `data:image/jpeg;base64, ${imageOpitmizerBuffer.toString('base64')}`;
-        const cloudinaryResponse = await cloudinary.Uploader.upload(fileUri);
-
-        const post = await Post.create({
-            caption,
-            image: cloudinaryResponse.secure_url,   
-            author: authorId
-        })
-
-        const user = await User.findById(authorId)
-        if(user){
-            user.posts.push(post._id),
-            await user.save()
-        }
-
-        await post.populate({path: 'author', select: '-password'})
-
-        return res.status(200).json({
-            message: "Post created successfully",
-            success:true, 
-            post: post
-        })
-
-    }catch(err){
-        console.log(err);
+    if (!image) {
+      return res.status(400).json({ message: "Please upload an image." });
     }
-}
+
+    const imageBuffer = await sharp(image.buffer)
+      .resize({ width: 800, height: 800, fit: 'inside' })
+      .toFormat('jpeg', { quality: 80 })
+      .toBuffer();
+
+    const fileUri = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+    const cloudinaryResponse = await cloudinary.uploader.upload(fileUri);
+
+    const post = await Post.create({
+      caption,
+      image: cloudinaryResponse.secure_url,
+      author: authorId,
+    });
+
+    const user = await User.findById(authorId);
+    if (user) {
+      user.posts.push(post._id);
+      await user.save();
+    }
+
+    await post.populate({ path: 'author', select: '-password' });
+
+    return res.status(200).json({
+      message: "Post created successfully",
+      success: true,
+      post,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Internal Server Error", success: false });
+  }
+};
 
 module.exports.getAllPosts = async (req, res) => {
     try{
@@ -82,6 +82,7 @@ module.exports.getUserPost = async (req, res) => {
                 select: 'username , profilePicture'
             }
         })
+    
 
         return res.status(200).json({
             success:true,

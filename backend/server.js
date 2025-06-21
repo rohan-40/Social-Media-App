@@ -15,11 +15,11 @@ const Port = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({extended:true}));
-const corsOption = {
-    origin: ['http://localhost:5173'],
-    credentials: true
-}
-app.use(cors(corsOption));
+const corsOptions = {
+  origin: ['http://localhost:5173'], // your frontend URL
+  credentials: true
+};
+app.use(cors(corsOptions));
 
 app.use('/user',userRoutes);
 app.use('/post',postRoutes);
