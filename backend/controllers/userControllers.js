@@ -18,7 +18,7 @@ module.exports.register = async (req, res) => {
             })
         }
         
-        const user = await User.findOne({ email });
+        let user = await User.findOne({ email });
         if(user) {
             return res.status(401).json({
                 message: "User already exists",
@@ -31,10 +31,11 @@ module.exports.register = async (req, res) => {
             email,
             password: await bcrypt.hash(password, 10)
         })
-
+        user = await User.findOne({ email });
         return res.status(200).json({
             message: "Account created successfully",
-            success: true
+            success: true,
+            user: user
         })
 
 
@@ -114,7 +115,7 @@ module.exports.logout = async (_, res) => {
 module.exports.getProfile = async (req, res) => {
     try{
         const userId = req.params.id;
-        const user = await User.findById(userId);
+        const user = await User.findById(userId).populate({path: 'posts'}).populate({path:'bookmarks'});
         if(!user) {
             return res.status(404).json({
                 message: "User not found",
@@ -124,7 +125,7 @@ module.exports.getProfile = async (req, res) => {
         return res.status(200).json({
             message: "User profile retrieved successfully",
             success: true,
-            user
+            user: user
         })
     }catch(err){
         console.log(err)
@@ -170,7 +171,7 @@ module.exports.editProfile = async (req,res) => {
 
 module.exports.getSuggestedUsers = async(req,res) => {
     try{
-        const suggestedUsers = await User.find({id:{$ne:req.id}}).select("-password");
+        const suggestedUsers = await User.find({_id:{$ne:req.id}}).select("-password");
         if(!suggestedUsers){
             return res.status(404).json({
                 message: "No users found",

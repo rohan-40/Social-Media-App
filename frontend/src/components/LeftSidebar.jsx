@@ -1,5 +1,3 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
-import { toast } from "sonner";
 import {
   Heart,
   Home,
@@ -9,57 +7,50 @@ import {
   Search,
   TrendingUp,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
-import { setAuthUser } from "@/redux/authSlice";
+import axios from "axios";
+import { toast } from "sonner";
+import {
+  setAuthUser,
+  setSuggestedUser,
+  setUserProfile,
+} from "@/redux/authSlice";
 import CreatePost from "./CreatePost";
+import { setPosts } from "@/redux/postSlice";
 
-const LeftSidebar = () => {
+const LeftSidebar = ({ isMobile = false }) => {
   const navigate = useNavigate();
   const { user } = useSelector((store) => store.auth);
   const [open, setOpen] = useState(false);
   const dispatch = useDispatch();
 
   const sidebarItems = [
-    {
-      icon: <Home />,
-      text: "Home",
-    },
-    {
-      icon: <Search />,
-      text: "Search",
-    },
-    {
-      icon: <TrendingUp />,
-      text: "Explore",
-    },
-    {
-      icon: <MessageCircle />,
-      text: "Messages",
-    },
-    {
-      icon: <Heart />,
-      text: "Notifications",
-    },
-    {
-      icon: <PlusSquare />,
-      text: "Create",
-    },
+    { icon: <Home size={20} />, text: "Home" },
+    { icon: <Search size={20} />, text: "Search" },
+    { icon: <TrendingUp size={20} />, text: "Explore" },
+    { icon: <MessageCircle size={20} />, text: "Messages" },
+    { icon: <Heart size={20} />, text: "Notifications" },
+    { icon: <PlusSquare size={20} />, text: "Create" },
     {
       icon: (
-        <Avatar className="w-8 h-8 rounded-full overflow-hidden">
-          <AvatarImage src={user?.profilePicture} />
-          <AvatarFallback>CN</AvatarFallback>
+        <Avatar className="w-6 h-6 rounded-full overflow-hidden">
+          <AvatarImage
+            src={user?.profilePicture || "/default-avatar.png"}
+            alt={user?.username || "User"}
+            className="object-cover w-full h-full"
+          />
+          <AvatarFallback className="bg-gray-200 text-sm font-medium flex items-center justify-center w-full h-full rounded-full">
+            {user?.username?.slice(0, 2).toUpperCase() || "US"}
+          </AvatarFallback>
         </Avatar>
       ),
       text: "Profile",
     },
-    {
-      icon: <LogOut />,
-      text: "Logout",
-    },
+
+    { icon: <LogOut size={20} />, text: "Logout" },
   ];
 
   const logoutHandler = async () => {
@@ -69,6 +60,9 @@ const LeftSidebar = () => {
       });
       if (response.data.success) {
         dispatch(setAuthUser(null));
+        dispatch(setUserProfile(null));
+        dispatch(setSuggestedUser([]));
+        dispatch(setPosts([]));
         toast.success(response.data.message);
         navigate("/login");
       }
@@ -79,30 +73,51 @@ const LeftSidebar = () => {
   };
 
   const sidebarHandler = async (textType) => {
-    if (textType === "Logout") {
-      await logoutHandler();
-    } else if (textType === "Create") {
-      setOpen(true);
+    switch (textType) {
+      case "Logout":
+        await logoutHandler();
+        break;
+      case "Create":
+        setOpen(true);
+        break;
+      case "Profile":
+        navigate(`/profile/${user._id}`);
+        break;
+      case "Home":
+        navigate("/");
+        break;
+      case "Messages":
+        navigate("/chat");
+        break;
+      default:
+        toast(`"${textType}" is not implemented`);
     }
   };
 
   return (
-    <div className="fixed top-0 z-0 left-0 px-4 border-r border-gray-300 w-[16%] h-screen">
-      <div className="flex flex-col">
-        <h1 className="mt-8 mb-3 pl-4 font-bold text-xl">Logo</h1>
-        <div>
-          {sidebarItems.map((item) => (
-            <div
-              key={item.text} // ✅ use item.text as a unique key
-              onClick={() => sidebarHandler(item.text)}
-              className="flex items-center gap-3 relative hover:bg-gray-200 cursor-pointer rounded-lg p-3 my-3"
-            >
-              {item.icon}
-              <span>{item.text}</span>
-            </div>
-          ))}
-        </div>
+    <div className="w-full h-full">
+      {/* Logo */}
+      {!isMobile && (
+        <h1 className="mt-8 mb-3 pl-4 font-bold text-xl text-gray-800">Logo</h1>
+      )}
+
+      {/* Menu Items */}
+      <div className="flex flex-col gap-2 px-4 pt-2">
+        {sidebarItems.map((item) => (
+          <div
+            key={item.text}
+            onClick={() => sidebarHandler(item.text)}
+            className="flex items-center gap-3 hover:bg-gray-200 cursor-pointer rounded-lg p-3 transition duration-150"
+          >
+            {item.icon}
+            <span className="text-sm font-medium text-gray-700">
+              {item.text}
+            </span>
+          </div>
+        ))}
       </div>
+
+      {/* Create Post Dialog */}
       <CreatePost open={open} setOpen={setOpen} />
     </div>
   );

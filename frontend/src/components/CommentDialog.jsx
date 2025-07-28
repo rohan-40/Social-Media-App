@@ -1,114 +1,131 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
 import * as Dialog from "@radix-ui/react-dialog";
-import { MoreHorizontal } from "lucide-react";
-import React, { useState } from "react";
+import { X, MoreHorizontal } from "lucide-react";
+import React, { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
+import Comments from "./Comments";
+import axios from "axios";
+import { toast } from "sonner";
+import { useDispatch, useSelector } from "react-redux";
+import { setPosts } from "@/redux/postSlice";
 
-const CommentDialog = ({ open, setOpen }) => {
+const CommentDialog = ({ open, setOpen, post }) => {
   const [text, setText] = useState("");
+  const { user } = useSelector((store) => store.auth);
+  const { posts } = useSelector((store) => store.post);
+  const dispatch = useDispatch();
+  const listRef = useRef(null);
 
-  const changeEventHandler = (e) => {
-    const inputText = e.target.value;
-    if (inputText.trim()) {
-      setText(inputText);
-    } else {
-      setText("");
+  const sendComment = async () => {
+    if (!text.trim()) return;
+    try {
+      const res = await axios.post(
+        `http://localhost:4000/post/${post._id}/comment`,
+        { text },
+        { withCredentials: true }
+      );
+      if (res.data.success) {
+        const updated = posts.map((p) =>
+          p._id === post._id
+            ? { ...p, comments: [...p.comments, res.data.comment] }
+            : p
+        );
+        dispatch(setPosts(updated));
+        toast.success(res.data.message);
+        setText("");
+        setTimeout(() => {
+          listRef.current?.scrollTo(0, listRef.current.scrollHeight);
+        }, 100);
+      }
+    } catch {
+      toast.error("Failed to post comment");
     }
   };
 
-  const sendMessageHandler = () =>{
-    alert(text)
-  }
+  const latestPost = posts.find((p) => p._id === post._id);
+
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Portal>
-        {/* Background overlay */}
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
-
-        {/* Centered content */}
-        <Dialog.Content className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white max-w-5xl w-[90%] rounded-lg overflow-hidden shadow-2xl p-0 flex flex-col">
-          <div className="flex h-[70vh]">
-            {/* Image section */}
-            <div className="w-1/2 bg-black">
-              <img
-                src="https://images.unsplash.com/photo-1749498682646-45e7c11506ec?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                alt="post"
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Info section */}
-            <div className="w-1/2 flex flex-col justify-between p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Link>
-                    <Avatar>
-                      <AvatarImage src="" alt="user" />
-                      <AvatarFallback>CN</AvatarFallback>
-                    </Avatar>
-                  </Link>
-                  <div>
-                    <Link className="text-semibold text-xs">username</Link>
-                    {/* <span>Bio here...</span> */}
-                  </div>
-                </div>
-                <Dialog.Root>
-                  <Dialog.Trigger asChild>
-                    <button
-                      aria-label="Open post options"
-                      className="p-1 rounded-full hover:bg-gray-100"
-                    >
-                      <MoreHorizontal className="cursor-pointer" />
-                    </button>
-                  </Dialog.Trigger>
-
-                  <Dialog.Portal>
-                    <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
-                    <Dialog.Content className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-80 rounded-xl overflow-hidden shadow-xl">
-                      <div className="text-center text-sm font-medium divide-y divide-gray-300">
-                        <button className="text-red-500 py-3 w-full hover:bg-gray-100 cursor-pointer">
-                          Unfollow
-                        </button>
-                        <button className="py-3 w-full hover:bg-gray-100 cursor-pointer">
-                          Add to favorites
-                        </button>
-                        <Dialog.Close asChild>
-                          <button className="py-3 w-full hover:bg-gray-100 cursor-pointer">
-                            Cancel
-                          </button>
-                        </Dialog.Close>
-                      </div>
-                    </Dialog.Content>
-                  </Dialog.Portal>
-                </Dialog.Root>
-              </div>
-              {/* You can add comment list / input / etc. here */}
-              <hr />
-              <div className="flex-1 overflow-y-auto max-h-96 p-4">
-                comments
-              </div>
-              <div className="p-0">
-                <div className="flex items-center justify-between">
-                  <input
-                    type="text"
-                    value={text}
-                    onChange={changeEventHandler}
-                    placeholder="Add a comment..."
-                    className="outline-none text-sm w-full"
-                  />
-                  <Button variant={'outline'} onClick={sendMessageHandler} disabled={!text.trim()} className="text-[#3BADF8] cursor-pointer border-none ">Send</Button>
-                </div>
-              </div>
-            </div>
+        <Dialog.Overlay className="fixed inset-0 bg-black/60 z-40" />
+        <Dialog.Content className="fixed inset-0 z-50 mx-auto my-4 max-w-5xl bg-white rounded-md shadow-lg flex overflow-hidden md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:h-[90vh]">
+          
+          {/* Left: image panel (desktop only) */}
+          <div className="hidden md:block md:w-1/2 bg-black">
+            <img
+              src={post.image}
+              alt="post"
+              className="w-full h-full object-cover"
+            />
           </div>
 
-          {/* Close button */}
-          <Dialog.Close asChild>
-            <button className="py-3 text-sm text-gray-700 hover:bg-gray-100 w-full border-t cursor-pointer">
-              Close
-            </button>
-          </Dialog.Close>
+          {/* Right: comment area */}
+          <div className="relative flex flex-col w-full md:w-1/2">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8 rounded-full overflow-hidden">
+                  <AvatarImage
+                    src={post.author.profilePicture}
+                    className="w-full h-full object-cover"
+                  />
+                  <AvatarFallback className="bg-gray-200 text-gray-500 flex items-center justify-center">
+                    {post.author.username.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <Link
+                  to={`/profile/${post.author.username}`}
+                  className="font-medium text-sm"
+                >
+                  {post.author.username}
+                </Link>
+              </div>
+
+              {/* Only show on desktop */}
+              <button className="hidden md:inline-flex p-1 rounded-full hover:bg-gray-100">
+                <MoreHorizontal size={20} />
+              </button>
+            </div>
+
+            {/* Comments */}
+            <div
+              ref={listRef}
+              className="flex-1 overflow-y-auto p-4 space-y-3"
+            >
+              {latestPost?.comments?.map((c) => (
+                <Comments key={c._id} comment={c} />
+              ))}
+            </div>
+
+            {/* Comment input */}
+            <div className="border-t px-4 py-3 bg-white">
+              <div className="flex items-center gap-3">
+                <input
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Add a comment..."
+                  className="flex-1 rounded-full border px-3 py-2 text-sm focus:outline-none"
+                />
+                <Button
+                  onClick={sendComment}
+                  disabled={!text.trim()}
+                  variant="ghost"
+                  className="text-blue-500 font-semibold"
+                >
+                  Post
+                </Button>
+              </div>
+            </div>
+
+            {/* Close button for mobile */}
+            <Dialog.Close asChild>
+              <button className="absolute top-3 right-3 md:hidden p-1 hover:bg-gray-100 rounded-full">
+                <X size={18} />
+              </button>
+            </Dialog.Close>
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

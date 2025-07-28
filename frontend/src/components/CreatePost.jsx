@@ -10,6 +10,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { setPosts } from "@/redux/postSlice";
+import { setAuthUser } from "@/redux/authSlice";
 
 const CreatePost = ({ open, setOpen }) => {
   const imageRef = useRef();
@@ -21,7 +22,6 @@ const CreatePost = ({ open, setOpen }) => {
   const { user } = useSelector((store) => store.auth);
   const dispatch = useDispatch();
   const { posts } = useSelector((store) => store.post);
-
   const navigate = useNavigate();
 
   const fileHandler = async (e) => {
@@ -59,6 +59,7 @@ const CreatePost = ({ open, setOpen }) => {
 
       if (response.data.success) {
         dispatch(setPosts([response.data.post, ...posts]));
+        navigate('/')
         toast.success(response.data.message);
         setCaption("");
         setFile("");
@@ -80,10 +81,10 @@ const CreatePost = ({ open, setOpen }) => {
         <Dialog.Content
           onInteractOutside={() => setOpen(false)}
           className="fixed z-50 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 
-                     bg-white w-full max-w-md p-6 rounded-2xl shadow-xl 
-                     focus:outline-none space-y-5"
+            w-[95%] max-w-md sm:w-full sm:max-w-lg md:max-w-xl bg-white 
+            p-4 sm:p-6 rounded-2xl shadow-xl focus:outline-none space-y-5"
         >
-          {/* ✅ Accessible Dialog Title and Description */}
+          {/* Title */}
           <Dialog.Title className="text-xl font-semibold text-gray-800">
             Create New Post
           </Dialog.Title>
@@ -95,15 +96,17 @@ const CreatePost = ({ open, setOpen }) => {
           <div className="flex items-center gap-3">
             <Avatar className="w-8 h-8 rounded-full overflow-hidden">
               <AvatarImage
-                src={user.profilePicture}
+                src={user?.profilePicture}
                 alt="User"
-                className="w-full h-full object-fit"
+                className="w-full h-full object-cover"
               />
-              <AvatarFallback>CN</AvatarFallback>
+              <AvatarFallback>
+                {user?.username?.slice(0, 2).toUpperCase() || "US"}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-medium text-gray-900">{user.username}</p>
-              <span className="text-sm text-gray-500">{user.bio}</span>
+              <p className="font-medium text-gray-900">{user?.username}</p>
+              <span className="text-sm text-gray-500">{user?.bio}</span>
             </div>
           </div>
 
@@ -121,7 +124,7 @@ const CreatePost = ({ open, setOpen }) => {
               <img
                 className="max-h-64 object-contain rounded-md"
                 src={imagePreview}
-                alt="img_preview"
+                alt="preview"
               />
             </div>
           )}
